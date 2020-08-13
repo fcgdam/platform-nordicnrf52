@@ -352,13 +352,11 @@ elif upload_protocol == "nrfjprog":
     upload_actions = [env.VerboseAction("$UPLOADCMD", "Uploading $SOURCE")]
 
 elif upload_protocol == "nrfutil":
-    print("--------------------")
-    print(upload_protocol)
     env.Replace(
         UPLOADER=nrfutil_path,
         UPLOADERFLAGS=[
             "dfu",
-            "serial",
+            "usb-serial",
             "-p",
             "$UPLOAD_PORT",
             "-b",
