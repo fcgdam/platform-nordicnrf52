@@ -9,6 +9,9 @@
     "f_cpu": "64000000L",
     "mcu": "nrf52840",
     "variant": "PCA1000X",
+    "bsp": {
+      "name": "nrf52840_dongle"
+    },
     "zephyr": {
        "variant": "nrf52840_pca10059"
     }
@@ -21,10 +24,6 @@
       "jlink"
     ],
     "jlink_device": "nRF52840_xxAA",
-    "onboard_tools": [
-      "cmsis-dap",
-      "jlink"
-    ],
     "svd_path": "nrf52840.svd"
   },
   "frameworks": [

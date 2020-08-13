@@ -53,8 +53,9 @@ platform = env.PioPlatform()
 board = env.BoardConfig()
 variant = board.get("build.variant", "")
 
-use_adafruit = board.get(
-    "build.bsp.name", "nrf5") == "adafruit" and "arduino" in env.get("PIOFRAMEWORK", [])
+use_adafruit = board.get("build.bsp.name", "nrf5") == "adafruit" and "arduino" in env.get("PIOFRAMEWORK", [])
+use_nrfdongle = board.get("build.bsp.name", "nrf5") == "nrf52840_dongle" and "arduino" in env.get("PIOFRAMEWORK", [])
+
 if use_adafruit:
     FRAMEWORK_DIR = platform.get_package_dir("framework-arduinoadafruitnrf52")
 
@@ -67,7 +68,8 @@ if use_adafruit:
         nrfutil_path = "adafruit-nrfutil"
 else:
     # set it to empty since we won't need it
-    nrfutil_path = ""
+    # use system nrfutil defined on path
+    nrfutil_path = "nrfutil"
 
 env.Replace(
     AR="arm-none-eabi-ar",
@@ -170,6 +172,39 @@ if use_adafruit:
         )
     )
 
+if use_nrfdongle:
+    env.Append(
+        BUILDERS=dict(
+            PackageDfu=Builder(
+                action=env.VerboseAction(" ".join([
+                    '"%s"' % nrfutil_path,
+                    "pkg",
+                    "generate",
+                    "--hw-version",
+                    "52",
+                    "--sd-req",
+                    "0x00",
+                    "--application",
+                    "$SOURCES",
+                    "--application-version",
+                    "1",
+                    "$TARGET"
+                ]), "Building $TARGET"),
+                suffix=".zip"
+            ),
+            SignBin=Builder(
+                action=env.VerboseAction(" ".join([
+                    "$PYTHONEXE",
+                    join("",
+                        "tools", "pynrfbintool", "pynrfbintool.py"),
+                    "--signature",
+                    "$TARGET",
+                    "$SOURCES"
+                ]), "Signing $SOURCES"),
+                suffix="_signature.bin"
+            )
+        )
+    )
 
 if not env.get("PIOFRAMEWORK"):
     env.SConscript("frameworks/_bare.py")
@@ -197,7 +232,7 @@ else:
         target_firm = env.MergeHex(
             join("$BUILD_DIR", "${PROGNAME}"),
             env.ElfToHex(join("$BUILD_DIR", "userfirmware"), target_elf))
-    elif "nrfutil" == upload_protocol and use_adafruit:
+    elif "nrfutil" == upload_protocol:
         target_firm = env.PackageDfu(
             join("$BUILD_DIR", "${PROGNAME}"),
             env.ElfToHex(join("$BUILD_DIR", "${PROGNAME}"), target_elf))
@@ -317,6 +352,8 @@ elif upload_protocol == "nrfjprog":
     upload_actions = [env.VerboseAction("$UPLOADCMD", "Uploading $SOURCE")]
 
 elif upload_protocol == "nrfutil":
+    print("--------------------")
+    print(upload_protocol)
     env.Replace(
         UPLOADER=nrfutil_path,
         UPLOADERFLAGS=[
@@ -326,7 +363,7 @@ elif upload_protocol == "nrfutil":
             "$UPLOAD_PORT",
             "-b",
             "$UPLOAD_SPEED",
-            "--singlebank",
+            ("--singlebank" if use_adafruit else ""),
         ],
         UPLOADCMD='"$UPLOADER" $UPLOADERFLAGS -pkg $SOURCE'
     )
@@ -334,7 +371,7 @@ elif upload_protocol == "nrfutil":
         env.VerboseAction(BeforeUpload, "Looking for upload port..."),
         env.VerboseAction("$UPLOADCMD", "Uploading $SOURCE")
     ]
-
+    
 elif upload_protocol == "sam-ba":
     env.Replace(
         UPLOADER="bossac",
