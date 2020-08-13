@@ -36,14 +36,12 @@
   "upload": {
     "maximum_ram_size": 262144,
     "maximum_size": 1048576,
-    "protocol": "jlink",
+    "protocol": "nrfutil",
     "protocols": [
       "jlink",
       "nrfjprog",
-      "stlink",
       "blackmagic",
-      "cmsis-dap",
-      "mbed"
+      "nrfutil"
     ]
   },
   "url": "https://www.nordicsemi.com/eng/Products/nRF52840-Dongle",
